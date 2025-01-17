@@ -13,14 +13,11 @@ upload_sessions = {}
 def lambda_handler(event, context):
     try:
         # Parse JSON payload from request
-        # payload = json.loads(event['body'])
-        file_name = event['queryStringParameters']['fileName']
-        part_number = int(event['queryStringParameters']['partNumber'])
-        total_chunks = int(event['queryStringParameters']['totalChunks'])
-        # chunk = base64.b64decode(event['queryStringParameters']['chunk'])  # Decode Base64 chunk
-
-        # Get the binary data from the request body
-        binary_data = base64.b64decode(event['body']) if event['isBase64Encoded'] else event['body'].encode('utf-8')
+        payload = json.loads(event['body'])
+        file_name = payload['fileName']
+        part_number = int(payload['partNumber'])
+        total_chunks = int(payload['totalChunks'])
+        chunk = base64.b64decode(payload['chunk'])  # Decode Base64 chunk
 
         # Initialize multipart upload (for the first chunk)
         if part_number == 1:
@@ -40,7 +37,7 @@ def lambda_handler(event, context):
             Key=file_name,
             PartNumber=part_number,
             UploadId=upload_id,
-            Body=binary_data
+            Body=chunk
         )
 
         # Save the ETag for the uploaded part
@@ -58,7 +55,7 @@ def lambda_handler(event, context):
                 UploadId=upload_id,
                 MultipartUpload={'Parts': parts}
             )
-            # del upload_sessions[file_name]  # Clean up session
+            del upload_sessions[file_name]  # Clean up session
             return {
                 'statusCode': 200,
                 'body': json.dumps('Multipart upload completed successfully!')
