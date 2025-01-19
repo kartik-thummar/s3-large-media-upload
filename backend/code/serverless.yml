@@ -1,5 +1,8 @@
 service: s3-video-data
 
+custom:
+  CORSOrigin: '*'
+
 provider:
   name: aws
   region: us-east-1
@@ -7,17 +10,18 @@ provider:
   stackName: s3-video-data
   stage: dev   
   environment:
-    AccessControlAllowOrigin: ${self:custom.${self:custom.myStage}.CORSOrigin}
+    AccessControlAllowOrigin: ${self:custom.CORSOrigin}
   logRetentionInDays: 7
   timeout: 25
+  apiGateway:
+    binaryMediaTypes:
+      # - '*/*'
+      # - 'video/mp4'
+      - 'video/*'
+      - 'application/octet-stream'
   iam:
     role:
       name: s3-video-app-data
-      # path: /custom-role-path/
-      # statements:
-      #   - Effect: 'Allow'
-      #     Resource: '*'
-      #     Action: 'iam:DeleteUser'
       managedPolicies:
         - 'arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole'
         - 'arn:aws:iam::aws:policy/AmazonS3FullAccess'
@@ -25,13 +29,25 @@ provider:
 
 functions:
 
-  VideoDataManagement:
+  UploadVideos:
     handler: upload.lambda_handler
-    name: VideoDataManagement
+    name: UploadVideos
     events:
       - http:
           cors:
             origins:
-              - ${self:custom.${self:custom.myStage}.CORSOriginAPI}
+              - ${self:custom.CORSOrigin}
           path: data/
           method: POST
+
+  CancelVideoUpload:
+    handler: upload.lambda_handler
+    name: CancelVideoUpload
+    events:
+      - http:
+          cors:
+            origins:
+              - ${self:custom.CORSOrigin}
+          path: data/
+          method: DELETE
+
